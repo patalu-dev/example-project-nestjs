@@ -133,19 +133,17 @@ onMounted(() => {
                         <tr v-if="loading" class="animate-fade-in">
                             <td colspan="5" class="px-4 py-10 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
-                                    <Spinner class="w-8 h-8 text-gray-400 animate-spin" />
+                                    <Spinner class="w-6 h-6 text-gray-400" />
                                     <span class="text-sm text-gray-400">Đang tải dữ liệu...</span>
                                 </div>
                             </td>
                         </tr>
-                        <tr v-else-if="!loading && permissions.length === 0" class="animate-fade-in">
+                        <tr v-else-if="!loading && permissions.length === 0">
                             <td colspan="5" class="px-4 py-8 text-center text-gray-500 italic">
                                 Không có dữ liệu để hiển thị.
                             </td>
                         </tr>
-                        <tr v-else class="hover:bg-gray-50 transition-all animate-fade-in-up"
-                            v-for="(permission, index) in permissions" :key="index"
-                            :style="{ animationDelay: `${Math.min(index * 40, 400)}ms`, animationFillMode: 'both' }">
+                        <tr v-else class="hover:bg-gray-50" v-for="(permission, index) in permissions" :key="index">
                             <td class="px-4 py-1 whitespace-nowrap font-medium">{{ index + 1 }}</td>
                             <td class="px-4 py-1 whitespace-nowrap">{{ permission.action }}</td>
                             <td class="px-4 py-1 whitespace-nowrap">{{ permission.subject }}</td>
@@ -217,10 +215,10 @@ onMounted(() => {
 }
 
 .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.1s ease-in-out forwards;
 }
 
 .animate-fade-in-up {
-    animation: fadeInUp 0.5s ease-out forwards;
+    animation: fadeInUp 0.1s ease-in-out forwards;
 }
 </style>
