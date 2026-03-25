@@ -9,10 +9,10 @@ import { Permission } from '../permissions/entities/permission.entity';
 // Subject map - maps subject strings from database to actual classes
 // When you add new entities, register them here so CASL can resolve them
 const subjectMap: Record<string, any> = {
+  all: 'all',
   User: User,
   Role: Role,
   Permission: Permission,
-  all: 'all',
 };
 
 export type Subjects = InferSubjects<typeof User | typeof Role | typeof Permission> | 'all';
