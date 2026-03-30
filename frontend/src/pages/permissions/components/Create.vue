@@ -12,7 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { h, ref } from 'vue'
+import { h, ref, onMounted } from 'vue'
 import { toast } from 'vue-sonner';
 import { request } from '@/lib/api'
 
@@ -31,7 +31,37 @@ const errors = ref({
     subject: '',
 })
 
-const actionOptions = ['manage', 'create', 'read', 'update', 'delete']
+const actionOptions = ref(['manage', 'create', 'read', 'update', 'delete'])
+const subjectOptions = ref(['all', 'User', 'Role', 'Permission'])
+
+const fetchOptions = async () => {
+    try {
+        const [actionsRes, subjectsRes] = await Promise.all([
+            request('/permissions/actions'),
+            request('/permissions/subjects')
+        ])
+
+        if (actionsRes.ok) {
+            const actions = await actionsRes.json()
+            if (Array.isArray(actions)) {
+                actionOptions.value = Array.from(new Set([...actionOptions.value, ...actions]))
+            }
+        }
+
+        if (subjectsRes.ok) {
+            const subjects = await subjectsRes.json()
+            if (Array.isArray(subjects)) {
+                subjectOptions.value = Array.from(new Set([...subjectOptions.value, ...subjects]))
+            }
+        }
+    } catch (e) {
+        console.error('Failed to fetch options:', e)
+    }
+}
+
+onMounted(() => {
+    fetchOptions()
+})
 
 const handleSubmit = async () => {
     // Reset errors
@@ -137,8 +167,18 @@ const handleSubmit = async () => {
                 </div>
                 <div class="grid gap-2">
                     <Label class="text-gray-800">Subject <span class="text-red-500">*</span></Label>
-                    <Input v-model="subject" placeholder="VD: User, Role, all..." :disabled="loading"
-                        :class="{ 'border-red-500': errors.subject }" @update:model-value="errors.subject = ''" />
+                    <Select v-model="subject" @update:model-value="errors.subject = ''">
+                        <SelectTrigger class="w-full" :class="{ 'border-red-500': errors.subject }">
+                            <SelectValue placeholder="Chọn subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectItem v-for="opt in subjectOptions" :key="opt" :value="opt">
+                                    {{ opt }}
+                                </SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                     <p v-if="errors.subject" class="text-[13px] text-red-500">{{ errors.subject }}</p>
                 </div>
                 <div class="grid gap-2">

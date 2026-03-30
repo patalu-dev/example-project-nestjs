@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, h } from 'vue'
+import { useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +16,7 @@ import {
 import { useAuth } from '@/composables/useAuth'
 
 const { login: authLogin } = useAuth()
+const route = useRoute()
 const loading = ref(false)
 const showLoading = ref(false)
 let loadingTimeout: any = null
@@ -38,7 +40,11 @@ const handleLogin = async () => {
   loadingTimeout = setTimeout(() => {
     showLoading.value = true
   }, 1000)
-  await authLogin(form.username, form.password)
+  
+  // Lấy redirect từ query
+  const redirect = route.query.redirect as string
+  await authLogin(form.username, form.password, redirect)
+  
   loading.value = false
   clearTimeout(loadingTimeout)
   showLoading.value = false

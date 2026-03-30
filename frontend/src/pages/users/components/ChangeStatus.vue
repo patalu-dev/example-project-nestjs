@@ -11,7 +11,7 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Loader2, CheckCircle, XCircle } from 'lucide-vue-next'
+import { Lock, Unlock, CheckCircle, XCircle } from 'lucide-vue-next'
 import { ref, h } from 'vue'
 import { request } from '@/lib/api'
 import { toast } from 'vue-sonner'
@@ -77,7 +77,8 @@ const handleToggleStatus = async () => {
     <AlertDialog v-model:open="isOpen">
         <AlertDialogTrigger as-child>
             <Button variant="outline" size="icon-sm" class="hover:bg-gray-100" title="Đổi trạng thái">
-                <RefreshCw class="w-4 h-4" />
+                <Lock v-if="user.isActive" class="w-4 h-4" />
+                <Unlock v-else class="w-4 h-4" />
             </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
@@ -93,7 +94,10 @@ const handleToggleStatus = async () => {
                 <AlertDialogCancel :disabled="loading">Hủy</AlertDialogCancel>
                 <AlertDialogAction @click.prevent="handleToggleStatus" :disabled="loading"
                     :class="user.isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'">
-                    <Loader2 v-if="showLoading" class="mr-2 h-4 w-4 animate-spin" />
+                    <template v-if="showLoading">
+                        <Lock v-if="user.isActive" class="h-4 w-4 animate-spin" />
+                        <Unlock v-else class="h-4 w-4 animate-spin" />
+                    </template>
                     {{ showLoading ? 'Đang xử lý...' : 'Xác nhận' }}
                 </AlertDialogAction>
             </AlertDialogFooter>

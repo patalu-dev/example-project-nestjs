@@ -132,7 +132,8 @@ const handleSubmit = async () => {
                 <ShieldAlert class="w-4 h-4" />
             </Button>
         </DialogTrigger>
-        <DialogContent class="sm:max-w-5xl w-[90vw] max-h-[85vh] flex flex-col p-0">
+        <DialogContent class="sm:max-w-5xl w-[90vw] max-h-[85vh] flex flex-col p-0"
+            :onOpenAutoFocus="(e) => e.preventDefault()">
             <DialogHeader class="px-6 py-4 pb-0">
                 <DialogTitle class="text-xl">Phân quyền Role: <span class="text-blue-600">{{ role.name }}</span>
                 </DialogTitle>

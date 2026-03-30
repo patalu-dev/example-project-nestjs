@@ -31,14 +31,20 @@ export function useAuth() {
   }
 
   const clearAuth = () => {
+    const currentPath = router.currentRoute.value.fullPath
     token.value = null
     user.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    router.push('/')
+    
+    if (currentPath && currentPath !== '/') {
+      router.push({ name: 'login', query: { redirect: currentPath } })
+    } else {
+      router.push('/')
+    }
   }
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, redirectPath?: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -54,7 +60,14 @@ export function useAuth() {
 
       setAuth(data.access_token, data.user)
 
-      router.push('/users')
+      // Ưu tiên redirectPath truyền vào, sau đó mới đến query từ router, cuối cùng là /users
+      const target = redirectPath || (router.currentRoute.value.query.redirect as string)
+      
+      if (target && target !== '/' && target !== '/login') {
+        router.push(target)
+      } else {
+        router.push('/users')
+      }
       return true
     } catch (err: any) {
       toast('Lỗi', {

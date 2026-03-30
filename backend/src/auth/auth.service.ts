@@ -12,11 +12,17 @@ export class AuthService {
 
   async validateUser(username: string, pass: string): Promise<any> {
     const user = await this.usersService.findByUsername(username);
-    if (user && await bcrypt.compare(pass, user.password)) {
-      const { password, ...result } = user;
-      return result;
+    
+    if (!user || !(await bcrypt.compare(pass, user.password))) {
+      throw new UnauthorizedException('Tài khoản hoặc mật khẩu không chính xác');
     }
-    return null;
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Tài khoản của bạn đã bị khóa');
+    }
+
+    const { password, ...result } = user;
+    return result;
   }
 
   async login(user: any) {

@@ -40,7 +40,7 @@ router.beforeEach((to, _from, next) => {
   const { token } = useAuth()
 
   if (to.meta.requiresAuth && !token.value) {
-    next({ name: 'login' })
+    next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.name === 'login' && token.value) {
     next({ name: 'users.index' })
   } else {
