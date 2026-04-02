@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
@@ -12,13 +13,13 @@ import { Role } from '../roles/entities/role.entity';
 
 const dataSource = new DataSource({
   type: 'mysql',
-  host: '10.10.10.101',
-  port: 3306,
-  username: 'srv-dev',
-  password: 'P@ssw0rd@2012',
-  database: 'example_project_nestjs',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  username: process.env.DB_USERNAME || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_DATABASE || 'example_project_nestjs',
   entities: [User, Permission, Role],
-  synchronize: false, // We don't want to change the schema
+  synchronize: false,
 });
 
 async function resetPasswords() {
