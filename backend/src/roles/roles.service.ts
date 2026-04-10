@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -93,7 +93,22 @@ export class RolesService {
     return this.rolesRepository.save(role);
   }
 
-  remove(id: number) {
-    return this.rolesRepository.delete(id);
+  async remove(id: number) {
+    try {
+      const result = await this.rolesRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`Role #${id} không tìm thấy`);
+      }
+      return { message: 'Xóa vai trò thành công' };
+    } catch (error) {
+      // Check for foreign key constraint violation (MySQL 1451)
+      if (error.errno === 1451 || error.code === 'ER_ROW_IS_REFERENCED_2') {
+        throw new ConflictException(
+          'Không thể xóa vai trò này vì đang có người dùng sử dụng. Vui lòng gỡ vai trò khỏi tất cả người dùng trước khi thực hiện xóa.',
+        );
+      }
+      throw error;
+    }
   }
 }
+

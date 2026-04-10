@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Permission } from './entities/permission.entity';
@@ -62,8 +62,18 @@ export class PermissionsService {
 
   async remove(id: number) {
     const permission = await this.findOne(id);
-    return this.permissionsRepository.remove(permission);
+    try {
+      return await this.permissionsRepository.remove(permission);
+    } catch (error) {
+      if (error.errno === 1451 || error.code === 'ER_ROW_IS_REFERENCED_2') {
+        throw new ConflictException(
+          'Không thể xóa quyền này vì đang được gắn với một hoặc nhiều vai trò. Vui lòng gỡ quyền này khỏi các vai trò trước khi thực hiện xóa.',
+        );
+      }
+      throw error;
+    }
   }
+
 
   /**
    * Get all unique actions that exist in the database

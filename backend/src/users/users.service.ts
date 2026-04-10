@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -71,8 +71,12 @@ export class UsersService {
     };
   }
 
-  findOne(id: number) {
-    return this.usersRepository.findOneBy({ id });
+  async findOne(id: number) {
+    const user = await this.usersRepository.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException(`User #${id} not found`);
+    }
+    return user;
   }
 
   findByUsername(username: string) {
@@ -84,7 +88,7 @@ export class UsersService {
     
     const user = await this.usersRepository.findOneBy({ id });
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException(`User #${id} not found`);
     }
 
     if (updateData.password) {
@@ -103,7 +107,20 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  remove(id: number) {
-    return this.usersRepository.delete(id);
+  async remove(id: number) {
+    try {
+      const result = await this.usersRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`User #${id} không tìm thấy`);
+      }
+      return { message: 'Xóa người dùng thành công' };
+    } catch (error) {
+      if (error.errno === 1451 || error.code === 'ER_ROW_IS_REFERENCED_2') {
+        throw new ConflictException(
+          'Không thể xóa người dùng này vì đang có dữ liệu liên quan khác tham chiếu tới. Vui lòng kiểm tra lại.',
+        );
+      }
+      throw error;
+    }
   }
 }
