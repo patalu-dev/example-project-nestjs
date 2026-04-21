@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, h } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, reactive, h, watchEffect } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +15,8 @@ import {
 
 import { useAuth } from '@/composables/useAuth'
 
-const { login: authLogin } = useAuth()
+const { login: authLogin, token } = useAuth()
+const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const showLoading = ref(false)
@@ -24,6 +25,18 @@ let loadingTimeout: any = null
 const form = reactive({
   username: '',
   password: '',
+})
+
+// Tự động chuyển hướng nếu đã đăng nhập
+watchEffect(() => {
+  if (token.value && (route.name === 'login' || route.path === '/')) {
+    const redirect = route.query.redirect as string
+    if (redirect && redirect !== '/' && redirect !== '/login') {
+      router.push(redirect)
+    } else {
+      router.push('/users')
+    }
+  }
 })
 
 const handleLogin = async () => {
@@ -40,13 +53,13 @@ const handleLogin = async () => {
   loadingTimeout = setTimeout(() => {
     showLoading.value = true
   }, 1000)
-  
+
   // Lấy redirect từ query
   const redirect = route.query.redirect as string
   await authLogin(form.username, form.password, redirect)
-  
+
   loading.value = false
-  clearTimeout(loadingTimeout)
+  if (loadingTimeout) clearTimeout(loadingTimeout)
   showLoading.value = false
 }
 </script>

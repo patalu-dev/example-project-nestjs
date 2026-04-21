@@ -138,8 +138,11 @@ onMounted(() => {
                             </td>
                         </tr>
                         <tr v-else-if="!loading && roles.length === 0">
-                            <td colspan="4" class="px-4 py-8 text-center text-gray-500 italic">
-                                Không có dữ liệu để hiển thị.
+                            <td colspan="4" class="px-4 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center justify-center">
+                                    <Inbox class="w-12 h-12 text-gray-300 mb-4" />
+                                    <p class="text-base text-gray-400">Không có dữ liệu để hiển thị</p>
+                                </div>
                             </td>
                         </tr>
                         <tr v-else class="hover:bg-gray-50" v-for="(role, index) in roles" :key="index">

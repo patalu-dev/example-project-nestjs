@@ -52,39 +52,40 @@ const isAuthPage = computed(() => {
 
 <template>
   <Toaster />
-
-  <RouterView v-slot="{ Component }">
-    <div v-if="isAuthPage" :key="'auth-layout'" class="contents">
-      <component :is="Component" v-if="Component" :key="route.fullPath" />
+  
+  <template v-if="isAuthPage">
+    <RouterView v-if="!route.meta.requiresAuth" :key="route.fullPath" />
+    <div v-else class="flex h-screen w-screen items-center justify-center bg-background">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
     </div>
+  </template>
 
-    <SidebarProvider v-else :key="'app-layout'">
-      <AppSidebar />
-      <SidebarInset>
-        <header class="flex h-12 shrink-0 items-center gap-2">
-          <div class="flex items-center gap-2 px-4">
-            <SidebarTrigger class="-ml-1" />
-            <Separator orientation="vertical" class="mr-2 data-[orientation=vertical]:h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <template v-for="(item, index) in breadcrumbItems" :key="item.title">
-                  <BreadcrumbItem>
-                    <BreadcrumbPage v-if="index === breadcrumbItems.length - 1">
-                      {{ item.title }}
-                    </BreadcrumbPage>
-                    <BreadcrumbLink v-else :href="item.href ?? '#'">
-                      {{ item.title }}
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator v-if="index < breadcrumbItems.length - 1" />
-                </template>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <hr class="border-border" />
-        <component :is="Component" v-if="Component" :key="route.fullPath" />
-      </SidebarInset>
-    </SidebarProvider>
-  </RouterView>
+  <SidebarProvider v-else>
+    <AppSidebar />
+    <SidebarInset>
+      <header class="flex h-12 shrink-0 items-center gap-2">
+        <div class="flex items-center gap-2 px-4">
+          <SidebarTrigger class="-ml-1" />
+          <Separator orientation="vertical" class="mr-2 data-[orientation=vertical]:h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <template v-for="(item, index) in breadcrumbItems" :key="item.title">
+                <BreadcrumbItem>
+                  <BreadcrumbPage v-if="index === breadcrumbItems.length - 1">
+                    {{ item.title }}
+                  </BreadcrumbPage>
+                  <BreadcrumbLink v-else :href="item.href ?? '#'">
+                    {{ item.title }}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator v-if="index < breadcrumbItems.length - 1" />
+              </template>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </header>
+      <hr class="border-border" />
+      <RouterView :key="route.fullPath" />
+    </SidebarInset>
+  </SidebarProvider>
 </template>

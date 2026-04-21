@@ -1,27 +1,13 @@
-import { ref, h, computed } from 'vue'
+import { h, computed } from 'vue'
 import router from '@/router' 
 import { API_BASE_URL } from '@/lib/api-config'
 import { toast } from 'vue-sonner'
 import { XCircle } from 'lucide-vue-next'
+import { user, token, lastActivity } from './authState'
 
-const user = ref<any>(null)
-const token = ref<string | null>(localStorage.getItem('token'))
-const lastActivity = ref<number>(Date.now())
 const INACTIVITY_LIMIT = 30 * 60 * 1000 // 30 minutes
 
-// Load user from local storage if exists
-const storedUser = localStorage.getItem('user')
-if (storedUser) {
-  try {
-    user.value = JSON.parse(storedUser)
-  } catch (e) {
-    localStorage.removeItem('user')
-  }
-}
-
 export function useAuth() {
-  // const router = useRouter()
-
   const setAuth = (newToken: string, newUser: any) => {
     token.value = newToken
     user.value = newUser
@@ -92,9 +78,32 @@ export function useAuth() {
       clearAuth()
       toast('Phiên làm việc hết hạn', {
         description: 'Bạn đã bị đăng xuất do không hoạt động trong 30 phút.',
-        icon: h(XCircle, { class: 'text-orange-500 w-5 h-5' }),
+        icon: h(XCircle, { class: 'text-red-500 w-5 h-5' }),
         position: 'top-center',
       })
+    }
+  }
+
+  const can = (action: string, subject: string) => {
+    if (!user.value || !user.value.roles || !Array.isArray(user.value.roles)) return false
+    
+    // Admin has all permissions
+    try {
+      const isAdmin = user.value.roles.some((role: any) => 
+        role?.name?.toLowerCase() === 'admin'
+      )
+      if (isAdmin) return true
+
+      // Check permissions in all roles
+      return user.value.roles.some((role: any) => 
+        Array.isArray(role.permissions) && role.permissions.some((p: any) => 
+          (p.action === 'manage' || p.action === action) && 
+          (p.subject === 'all' || p.subject === subject)
+        )
+      )
+    } catch (e) {
+      console.error('Permission check error:', e)
+      return false
     }
   }
 
@@ -103,6 +112,7 @@ export function useAuth() {
     token,
     login,
     logout,
+    can,
     checkInactivity,
     resetInactivityTimer,
     isAuthenticated: computed(() => !!token.value)

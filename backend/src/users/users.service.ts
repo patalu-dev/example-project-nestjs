@@ -27,13 +27,19 @@ export class UsersService {
     return this.usersRepository.save(newUser);
   }
 
-  async findAll(query?: { name?: string; username?: string; email?: string; role?: string; status?: string; page?: number; limit?: number }) {
+  async findAll(query?: { name?: string; username?: string; email?: string; role?: string; status?: string; page?: number; limit?: number; showDeleted?: string }) {
     const page = query?.page ? +query.page : 1;
     const limit = query?.limit ? +query.limit : 10;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.usersRepository.createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role');
+
+    if (query?.showDeleted === 'true') {
+      queryBuilder.withDeleted().andWhere('user.deletedAt IS NOT NULL');
+    } else {
+      // Default: only show active (non-deleted)
+    }
 
     if (query?.name) {
       queryBuilder.andWhere('user.name LIKE :name', { name: `%${query.name}%` });
@@ -109,7 +115,7 @@ export class UsersService {
 
   async remove(id: number) {
     try {
-      const result = await this.usersRepository.delete(id);
+      const result = await this.usersRepository.softDelete(id);
       if (result.affected === 0) {
         throw new NotFoundException(`User #${id} không tìm thấy`);
       }
@@ -122,5 +128,29 @@ export class UsersService {
       }
       throw error;
     }
+  }
+
+  async hardRemove(id: number) {
+    try {
+      const result = await this.usersRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`User #${id} không tìm thấy`);
+      }
+      return { message: 'Xóa vĩnh viễn người dùng thành công' };
+    } catch (error) {
+      if (error.errno === 1451 || error.code === 'ER_ROW_IS_REFERENCED_2') {
+        throw new ConflictException(
+          'Không thể xóa vĩnh viễn người dùng này vì đang có dữ liệu liên quan khác tham chiếu tới. Vui lòng kiểm tra lại.',
+        );
+      }
+      throw error;
+    }
+  }
+  async restore(id: number) {
+    const result = await this.usersRepository.restore(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`User #${id} không tìm thấy hoặc chưa bị xóa`);
+    }
+    return { message: 'Khôi phục người dùng thành công' };
   }
 }

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable, DeleteDateColumn, Unique } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Role } from '../../roles/entities/role.entity';
 
@@ -8,6 +8,8 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Unique(['username', 'deletedAt'])
+@Unique(['email', 'deletedAt'])
 export class User {
     @PrimaryGeneratedColumn()
     id: number;
@@ -15,10 +17,10 @@ export class User {
     @Column({ length: 100 })
     name: string;
 
-    @Column({ length: 50, unique: true })
+    @Column({ length: 50 })
     username: string;
 
-    @Column({ length: 100, unique: true, nullable: true })
+    @Column({ length: 100, nullable: true })
     email: string;
 
     @Exclude()
@@ -37,4 +39,7 @@ export class User {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @DeleteDateColumn()
+    deletedAt: Date;
 }

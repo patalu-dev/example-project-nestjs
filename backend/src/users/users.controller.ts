@@ -20,7 +20,7 @@ export class UsersController {
   }
 
   @Get()
-  findAll(@Query() query: { name?: string; username?: string; email?: string; page?: number; limit?: number }) {
+  findAll(@Query() query: { name?: string; username?: string; email?: string; role?: string; status?: string; page?: number; limit?: number; showDeleted?: string }) {
     return this.usersService.findAll(query);
   }
 
@@ -41,5 +41,19 @@ export class UsersController {
   @CheckPolicies({ action: 'delete', subject: User })
   remove(@Param('id') id: string) {
     return this.usersService.remove(+id);
+  }
+
+  @Post(':id/restore')
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies({ action: 'update', subject: User })
+  restore(@Param('id') id: string) {
+    return this.usersService.restore(+id);
+  }
+
+  @Delete(':id/permanent')
+  @UseGuards(PoliciesGuard)
+  @CheckPolicies({ action: 'delete', subject: User })
+  hardRemove(@Param('id') id: string) {
+    return this.usersService.hardRemove(+id);
   }
 }

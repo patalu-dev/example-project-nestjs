@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, FileSpreadsheet, Inbox } from 'lucide-vue-next'
 import Create from './components/Create.vue'
 import { request } from '@/lib/api'
 import SearchCard from './components/SearchCard.vue'
@@ -10,11 +10,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { Spinner } from '@/components/ui/spinner'
 import Edit from './components/Edit.vue'
 import Delete from './components/Delete.vue'
+import DeletePermanent from './components/DeletePermanent.vue'
+import Restore from './components/Restore.vue'
 import ChangeStatus from './components/ChangeStatus.vue'
 import ChangePassword from './components/ChangePassword.vue'
 import { toast } from 'vue-sonner'
 import { exportToExcel } from '@/lib/excel'
 import { useAuth } from '@/composables/useAuth'
+import { exportUsers } from './components/exportUtils'
 
 const { token } = useAuth()
 const { setBreadcrumbs } = useBreadcrumb()
@@ -43,6 +46,8 @@ const pagination = ref({
     total: 0,
     totalPages: 0
 })
+
+const showDeleted = ref(route.query.showDeleted === 'true')
 
 // Logic hiển thị tối đa 6 trang với dấu ba chấm
 const displayedPages = computed(() => {
@@ -81,6 +86,7 @@ const fetchUsers = async () => {
         if (filters.value.email) queryParams.append('email', filters.value.email)
         if (filters.value.role && filters.value.role.length > 0) queryParams.append('role', filters.value.role.join(','))
         if (filters.value.status) queryParams.append('status', filters.value.status)
+        if (showDeleted.value) queryParams.append('showDeleted', 'true')
         queryParams.append('page', pagination.value.page.toString())
         queryParams.append('limit', pagination.value.limit.toString())
 
@@ -112,7 +118,22 @@ const handleSearch = (newFilters: any) => {
             email: filters.value.email || undefined,
             role: (filters.value.role && filters.value.role.length > 0) ? filters.value.role.join(',') : undefined,
             status: filters.value.status || undefined,
+            showDeleted: showDeleted.value ? 'true' : undefined,
             page: pagination.value.page.toString(),
+        }
+    })
+}
+
+const toggleDeleted = (value: boolean) => {
+    showDeleted.value = value
+    pagination.value.page = 1
+
+    // Update URL directly
+    router.replace({
+        query: {
+            ...route.query,
+            showDeleted: value ? 'true' : undefined,
+            page: '1',
         }
     })
 }
@@ -136,6 +157,7 @@ const syncFiltersFromUrl = () => {
     const roleQuery = route.query.role as string
     filters.value.role = roleQuery ? roleQuery.split(',').filter(Boolean) : []
     filters.value.status = (route.query.status as string) || ''
+    showDeleted.value = route.query.showDeleted === 'true'
     pagination.value.page = route.query.page ? parseInt(route.query.page as string) : 1
 }
 
@@ -151,63 +173,26 @@ onMounted(() => {
 })
 
 const handleExport = async () => {
-    try {
-        // Fetch dữ liệu theo filter hiện tại, nhưng lấy nhiều hơn (ví dụ 3000)
-        const queryParams = new URLSearchParams()
-        if (filters.value.name) queryParams.append('name', filters.value.name)
-        if (filters.value.username) queryParams.append('username', filters.value.username)
-        if (filters.value.email) queryParams.append('email', filters.value.email)
-        if (filters.value.role && filters.value.role.length > 0) queryParams.append('role', filters.value.role.join(','))
-        if (filters.value.status) queryParams.append('status', filters.value.status)
-        queryParams.append('page', '1')
-        queryParams.append('limit', '3000') // Lấy tối đa 3000 bản ghi để xuất
-
-        const response = await request(`/users?${queryParams.toString()}`)
-        if (!response.ok) throw new Error('Không thể lấy dữ liệu để xuất')
-
-        const result = await response.json()
-        const dataToExport = result.items || []
-
-        if (dataToExport.length === 0) {
-            toast.error('Không có dữ liệu để xuất')
-            return
-        }
-
-        // Định dạng dữ liệu cho Excel (Dành riêng cho User)
-        const worksheetData = dataToExport.map((u: any, index: number) => ({
-            'STT': index + 1,
-            'Họ tên': u.name,
-            'Tài khoản': u.username,
-            'Email': u.email,
-            'Vai trò': u.roles?.map((r: any) => r.name).join(', ') || '',
-            'Trạng thái': u.isActive ? 'Hoạt động' : 'Không hoạt động',
-        }))
-
-        // Sử dụng hàm export dùng chung
-        await exportToExcel(
-            worksheetData,
-            'Danh_sach_nguoi_dung',
-            'Users',
-            [
-                { wch: 5 },  // STT
-                { wch: 20 }, // Họ tên
-                { wch: 15 }, // Tài khoản
-                { wch: 25 }, // Email
-                { wch: 20 }, // Vai trò
-                { wch: 15 }, // Trạng thái
-            ]
-        )
-    } catch (err: any) {
-        toast.error('Lỗi khi xuất file: ' + err.message)
-        console.error(err)
-    }
+    await exportUsers(filters.value, showDeleted.value)
 }
 </script>
 
 <template>
     <div class="flex flex-1 flex-col gap-4 p-4 pt-3">
         <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <h1 class="text-xl font-semibold">Quản lý tài khoản</h1>
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-semibold">Quản lý tài khoản</h1>
+                <div class="flex p-0.5 bg-gray-100 rounded-lg border border-gray-200">
+                    <button @click="toggleDeleted(false)"
+                        :class="['px-3 py-1 text-xs font-medium rounded-md transition-all', !showDeleted ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                        Người dùng
+                    </button>
+                    <button @click="toggleDeleted(true)"
+                        :class="['px-3 py-1 text-xs font-medium rounded-md transition-all', showDeleted ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                        Đã xóa
+                    </button>
+                </div>
+            </div>
             <Create @success="fetchUsers" />
         </div>
         <SearchCard :initial-filters="filters" :loading="loading" @search="handleSearch" />
@@ -221,13 +206,14 @@ const handleExport = async () => {
                             <th class="px-4 py-2 border-b font-semibold whitespace-nowrap">Tài khoản</th>
                             <th class="px-4 py-2 border-b font-semibold whitespace-nowrap">Email</th>
                             <th class="px-4 py-2 border-b font-semibold whitespace-nowrap">Quyền hạn</th>
-                            <th class="px-4 py-2 border-b font-semibold whitespace-nowrap">Trạng thái</th>
+                            <th v-if="!showDeleted" class="px-4 py-2 border-b font-semibold whitespace-nowrap">Trạng
+                                thái</th>
                             <th class="px-4 py-2 border-b font-semibold whitespace-nowrap">Hành động</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         <tr v-if="loading">
-                            <td colspan="7" class="px-4 py-10 text-center">
+                            <td :colspan="showDeleted ? 6 : 7" class="px-4 py-10 text-center">
                                 <div class="flex flex-col items-center justify-center gap-3">
                                     <Spinner class="w-6 h-6 text-gray-400" />
                                     <span class="text-sm text-gray-400">Đang tải dữ liệu...</span>
@@ -235,8 +221,11 @@ const handleExport = async () => {
                             </td>
                         </tr>
                         <tr v-else-if="!loading && users.length === 0">
-                            <td colspan="7" class="px-4 py-8 text-center text-gray-500 italic">
-                                Không có dữ liệu để hiển thị.
+                            <td :colspan="showDeleted ? 6 : 7" class="px-4 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center justify-center">
+                                    <Inbox class="w-12 h-12 text-gray-300 mb-4" />
+                                    <p class="text-base text-gray-400">Không có dữ liệu để hiển thị</p>
+                                </div>
                             </td>
                         </tr>
                         <tr v-else class="hover:bg-gray-50" v-for="(user, index) in users" :key="index">
@@ -253,17 +242,23 @@ const handleExport = async () => {
                                 </div>
                                 <span class="text-xs text-gray-400 italic" v-else>Chưa gán</span>
                             </td>
-                            <td class="px-4 py-1 whitespace-nowrap">
+                            <td v-if="!showDeleted" class="px-4 py-1 whitespace-nowrap">
                                 <span :class="user.isActive ? 'text-green-600' : 'text-red-600'">
                                     {{ user.isActive ? 'Hoạt động' : 'Không hoạt động' }}
                                 </span>
                             </td>
                             <td class="px-4 py-1 whitespace-nowrap">
                                 <div class="flex gap-1.5">
-                                    <ChangeStatus :user="user" @success="fetchUsers" />
-                                    <ChangePassword :user="user" @success="fetchUsers" />
-                                    <Edit :user="user" @success="fetchUsers" />
-                                    <Delete :user="user" @success="fetchUsers" />
+                                    <template v-if="!showDeleted">
+                                        <ChangeStatus :user="user" @success="fetchUsers" />
+                                        <ChangePassword :user="user" @success="fetchUsers" />
+                                        <Edit :user="user" @success="fetchUsers" />
+                                        <Delete :user="user" @success="fetchUsers" />
+                                    </template>
+                                    <template v-else>
+                                        <Restore :user="user" @success="fetchUsers" />
+                                        <DeletePermanent :user="user" @success="fetchUsers" />
+                                    </template>
                                 </div>
                             </td>
                         </tr>

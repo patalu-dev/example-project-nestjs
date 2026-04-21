@@ -8,31 +8,27 @@ const props = defineProps<ToasterProps>()
 </script>
 
 <template>
-  <Sonner
-    :class="cn('toaster group', props.class)"
-    :style="{
-      '--normal-bg': 'var(--popover)',
-      '--normal-text': 'var(--popover-foreground)',
-      '--normal-border': 'var(--border)',
-      '--border-radius': 'var(--radius)',
-    }"
-    v-bind="props"
-  >
+  <Sonner :class="cn('toaster group', props.class)" :style="{
+    '--normal-bg': 'var(--popover)',
+    '--normal-text': 'var(--popover-foreground)',
+    '--normal-border': 'var(--border)',
+    '--border-radius': 'var(--radius)',
+  }" v-bind="props" position="top-center">
     <template #success-icon>
-      <CircleCheckIcon class="size-4" />
+      <CircleCheckIcon class="size-5 text-green-500" />
     </template>
     <template #info-icon>
-      <InfoIcon class="size-4" />
+      <InfoIcon class="size-5 text-blue-500" />
     </template>
     <template #warning-icon>
-      <TriangleAlertIcon class="size-4" />
+      <TriangleAlertIcon class="size-5 text-orange-500" />
     </template>
     <template #error-icon>
-      <OctagonXIcon class="size-4" />
+      <OctagonXIcon class="size-5 text-red-500" />
     </template>
     <template #loading-icon>
       <div>
-        <Loader2Icon class="size-4 animate-spin" />
+        <Loader2Icon class="size-5 animate-spin text-gray-400" />
       </div>
     </template>
     <template #close-icon>
