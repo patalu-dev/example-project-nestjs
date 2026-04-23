@@ -3,9 +3,9 @@ import router from '@/router'
 import { API_BASE_URL } from '@/lib/api-config'
 import { toast } from 'vue-sonner'
 import { XCircle } from 'lucide-vue-next'
-import { user, token, lastActivity } from './authState'
+import { user, token, lastActivity, isSessionExpired } from './authState'
 
-const INACTIVITY_LIMIT = 30 * 60 * 1000 // 30 minutes
+const INACTIVITY_LIMIT = 2 * 60 * 1000 // 30 minutes
 
 export function useAuth() {
   const setAuth = (newToken: string, newUser: any) => {
@@ -24,9 +24,9 @@ export function useAuth() {
     localStorage.removeItem('user')
     
     if (currentPath && currentPath !== '/') {
-      router.push({ name: 'login', query: { redirect: currentPath } })
+      router.replace({ name: 'login', query: { redirect: currentPath } })
     } else {
-      router.push('/')
+      router.replace('/')
     }
   }
 
@@ -75,12 +75,7 @@ export function useAuth() {
 
   const checkInactivity = () => {
     if (token.value && Date.now() - lastActivity.value > INACTIVITY_LIMIT) {
-      clearAuth()
-      toast('Phiên làm việc hết hạn', {
-        description: 'Bạn đã bị đăng xuất do không hoạt động trong 30 phút.',
-        icon: h(XCircle, { class: 'text-red-500 w-5 h-5' }),
-        position: 'top-center',
-      })
+      isSessionExpired.value = true
     }
   }
 
@@ -115,6 +110,7 @@ export function useAuth() {
     can,
     checkInactivity,
     resetInactivityTimer,
+    isSessionExpired,
     isAuthenticated: computed(() => !!token.value)
   }
 }

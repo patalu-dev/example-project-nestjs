@@ -14,6 +14,15 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useBreadcrumb } from "@/composables/useBreadcrumb";
 import { Toaster } from "@/components/ui/sonner";
 import 'vue-sonner/style.css';
@@ -24,7 +33,12 @@ import { useAuth } from '@/composables/useAuth'
 
 const { items: breadcrumbItems } = useBreadcrumb();
 const route = useRoute()
-const { token, resetInactivityTimer, checkInactivity } = useAuth()
+const { token, resetInactivityTimer, checkInactivity, isSessionExpired, logout } = useAuth()
+
+const handleSessionExpired = () => {
+  isSessionExpired.value = false
+  logout()
+}
 
 let interval: any = null
 
@@ -52,10 +66,13 @@ const isAuthPage = computed(() => {
 
 <template>
   <Toaster />
-  
+
   <template v-if="isAuthPage">
-    <RouterView v-if="!route.meta.requiresAuth" :key="route.fullPath" />
-    <div v-else class="flex h-screen w-screen items-center justify-center bg-background">
+    <!-- Luôn giữ RouterView trong DOM để Router có thể thực hiện việc chuyển trang -->
+    <RouterView v-show="!route.meta.requiresAuth" :key="route.fullPath" />
+    
+    <!-- Hiển thị spinner che đi nội dung nếu URL hiện tại vẫn là trang yêu cầu auth nhưng đã mất token -->
+    <div v-if="route.meta.requiresAuth" class="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
       <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
     </div>
   </template>
@@ -88,4 +105,18 @@ const isAuthPage = computed(() => {
       <RouterView :key="route.fullPath" />
     </SidebarInset>
   </SidebarProvider>
+
+  <AlertDialog :open="isSessionExpired">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Phiên làm việc hết hạn</AlertDialogTitle>
+        <AlertDialogDescription>
+          Bạn đã không hoạt động trong một thời gian dài. Vui lòng đăng nhập lại để tiếp tục sử dụng hệ thống.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogAction @click="handleSessionExpired">Đăng nhập lại</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
